@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulador Financeiro</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #eef2f7;
+    --paper: #ffffff;
+    --line: #e2e8f0;
+    --line2: #cfd8e3;
+    --ink: #14233a;
+    --ink-soft: #5a6b82;
+    --ink-faint: #9aa8bc;
+    --blue: #0b5cad;
+    --blue-deep: #063d78;
+    --blue-soft: #e8f0fb;
+    --green: #1a7a4a;
+    --green-bg: #eaf6ef;
+    --red: #b23b3b;
+    --red-bg: #fbeded;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', sans-serif;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+    padding: 0 1rem 4rem;
+  }
+
+  .topbar {
+    width: calc(100% + 2rem); margin: 0 -1rem 2.25rem;
+    background: linear-gradient(180deg, var(--blue-deep), var(--blue));
+    padding: 1rem 1.25rem; display: flex; align-items: center; gap: 11px;
+    box-shadow: 0 2px 10px rgba(6,61,120,0.18);
+  }
+  .topbar-mark {
+    width: 34px; height: 34px; border-radius: 8px; background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.28);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 15px; color: #fff;
+  }
+  .topbar-title { font-size: 15px; font-weight: 600; color: #fff; letter-spacing: 0.2px; line-height: 1.2; }
+  .topbar-sub { font-size: 11px; color: rgba(255,255,255,0.7); letter-spacing: 0.2px; }
+
+  .card {
+    background: var(--paper);
+    border: 1px solid var(--line2);
+    border-radius: 12px;
+    padding: 2rem 1.9rem 1.85rem;
+    width: 100%; max-width: 430px;
+    box-shadow: 0 1px 2px rgba(20,35,58,0.04), 0 14px 34px rgba(20,35,58,0.07);
+  }
+
+  .card-eyebrow {
+    font-size: 10.5px; font-weight: 600; color: var(--blue); text-transform: uppercase;
+    letter-spacing: 1.1px; margin-bottom: 7px;
+  }
+  .card-title { font-size: 19px; font-weight: 600; margin-bottom: 5px; letter-spacing: -0.2px; }
+  .card-subtitle { font-size: 13px; color: var(--ink-soft); margin-bottom: 1.6rem; line-height: 1.5; }
+
+  .field-label {
+    font-size: 11px; font-weight: 600; color: var(--ink-soft);
+    text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px; display: block;
+  }
+  .input-wrap { position: relative; margin-bottom: 1.15rem; }
+  .input-wrap input {
+    width: 100%; background: #f7f9fc; border: 1px solid var(--line2);
+    border-radius: 9px; padding: 14px 42px 14px 15px;
+    font-size: 19px; font-family: 'IBM Plex Mono', monospace; font-weight: 500;
+    color: var(--ink); outline: none; letter-spacing: 1px;
+    transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+  }
+  .input-wrap input:focus { border-color: var(--blue); background: #fff; box-shadow: 0 0 0 3px rgba(11,92,173,0.12); }
+  .input-wrap input.error { border-color: var(--red); box-shadow: 0 0 0 3px rgba(178,59,59,0.12); animation: shake 0.32s ease; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 60%{transform:translateX(6px)} }
+  .input-wrap input::placeholder { color: var(--ink-faint); letter-spacing: 0.8px; }
+
+  .clear-btn {
+    position: absolute; right: 11px; top: 50%; transform: translateY(-50%);
+    background: transparent; border: none; width: 24px; height: 24px; border-radius: 50%;
+    color: var(--ink-faint); font-size: 13px; cursor: pointer;
+    display: none; align-items: center; justify-content: center; transition: background 0.15s, color 0.15s;
+  }
+  .clear-btn:hover { background: var(--red-bg); color: var(--red); }
+  .clear-btn.visible { display: flex; }
+
+  .btn-auto {
+    width: 100%; background: linear-gradient(180deg, var(--blue), var(--blue-deep));
+    border: none; border-radius: 9px; padding: 14px;
+    font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; font-weight: 600; color: #fff; letter-spacing: 0.3px;
+    cursor: pointer; transition: filter 0.15s, transform 0.1s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    box-shadow: 0 2px 8px rgba(11,92,173,0.22);
+  }
+  .btn-auto:hover { filter: brightness(1.08); }
+  .btn-auto:active { transform: scale(0.99); }
+  .btn-auto.loading { pointer-events: none; opacity: 0.9; }
+
+  .spinner {
+    display: none; width: 15px; height: 15px;
+    border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff;
+    border-radius: 50%; animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-steps { display: none; margin-top: 1.05rem; text-align: center; }
+  .loading-steps.show { display: block; }
+  .loading-steps span { font-size: 12px; color: var(--ink-faint); }
+
+  .result { display: none; margin-top: 1.6rem; animation: fadeUp 0.35s cubic-bezier(0.2,0,0,1); }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  .result.show { display: block; }
+
+  .seal { width: 100%; border: 1px solid var(--line2); border-radius: 11px; overflow: hidden; }
+
+  .seal-head {
+    padding: 16px 18px; display: flex; align-items: center; gap: 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .seal.r-aprovado .seal-head { background: var(--green-bg); }
+  .seal.r-negado   .seal-head { background: var(--red-bg); }
+
+  .seal-ring {
+    width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+    border: 2px solid var(--green); display: flex; align-items: center; justify-content: center;
+  }
+  .seal.r-negado .seal-ring { border-color: var(--red); }
+  .seal-ring svg { width: 19px; height: 19px; }
+  .seal.r-aprovado .seal-ring svg { color: var(--green); }
+  .seal.r-negado .seal-ring svg { color: var(--red); }
+
+  .seal-status { font-size: 13px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; }
+  .seal.r-aprovado .seal-status { color: var(--green); }
+  .seal.r-negado .seal-status { color: var(--red); }
+  .seal-cpf { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--ink-soft); margin-top: 2px; letter-spacing: 0.4px; }
+
+  .seal-body { padding: 20px 18px 18px; text-align: center; }
+
+  .limite-valor { font-family: 'IBM Plex Mono', monospace; font-size: 33px; font-weight: 600; color: var(--ink); line-height: 1.1; }
+  .limite-label { font-size: 10.5px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.8px; margin-top: 4px; margin-bottom: 16px; }
+
+  .parcelas-box {
+    background: var(--blue-soft); border: 1px solid rgba(11,92,173,0.15); border-radius: 9px;
+    padding: 12px 14px; display: flex; align-items: center; justify-content: center; gap: 9px;
+    font-size: 13px; font-weight: 600; color: var(--blue-deep);
+  }
+  .parcelas-box .sep { width: 4px; height: 4px; border-radius: 50%; background: rgba(11,92,173,0.3); }
+
+  .aparelho-box {
+    font-size: 12.5px; color: var(--ink-soft); line-height: 1.55;
+    background: #f7f9fc; border: 1px solid var(--line); border-radius: 9px;
+    padding: 11px 13px; margin-bottom: 12px;
+  }
+  .aparelho-box strong { color: var(--green); font-weight: 700; white-space: nowrap; }
+
+  .seal-foot { padding: 12px 18px 14px; border-top: 1px solid var(--line); background: #fafbfd; }
+  .seal-disclaimer { font-size: 10.5px; color: var(--ink-faint); line-height: 1.5; text-align: center; }
+  .simulacao-id { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--ink-faint); letter-spacing: 0.4px; text-align: center; margin-top: 6px; }
+
+  .footer { margin-top: 1.75rem; text-align: center; font-size: 11px; color: var(--ink-faint); letter-spacing: 0.2px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-mark">SF</div>
+  <div>
+    <div class="topbar-title">Simulador Financeiro</div>
+    <div class="topbar-sub">Simulação de crediário próprio</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-eyebrow">Análise de crediário</div>
+  <h1 class="card-title">Simulação de crédito</h1>
+  <p class="card-subtitle">Informe o CPF do cliente para gerar a simulação de limite e condições.</p>
+
+  <label class="field-label">CPF do cliente</label>
+  <div class="input-wrap">
+    <input type="text" id="cpf" placeholder="000.000.000-00" maxlength="14" autocomplete="off" inputmode="numeric" />
+    <button class="clear-btn" id="clear-btn" onclick="limpar()" title="Limpar">✕</button>
+  </div>
+
+  <button class="btn-auto" id="btn-auto" onclick="analisarAuto()">
+    <span id="btn-auto-label">Simular</span>
+    <div class="spinner" id="spinner"></div>
+  </button>
+
+  <div class="loading-steps" id="loading-steps">
+    <span id="loading-label">Gerando simulação...</span>
+  </div>
+
+  <div class="result" id="result">
+    <div class="seal" id="seal">
+      <div class="seal-head">
+        <div class="seal-ring" id="seal-ring">
+          <svg id="seal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></svg>
+        </div>
+        <div>
+          <div class="seal-status" id="seal-status"></div>
+          <div class="seal-cpf" id="seal-cpf"></div>
+        </div>
+      </div>
+
+      <div class="seal-body" id="seal-body">
+        <div id="limite-section">
+          <div class="limite-valor" id="limite-valor">—</div>
+          <div class="limite-label">Limite da simulação</div>
+          <div class="aparelho-box" id="aparelho-box">
+            O cliente pode comprar um celular de até <strong id="aparelho-valor">—</strong>
+          </div>
+          <div class="parcelas-box">
+            <span>Até 18x</span><span class="sep"></span><span>Boleto</span><span class="sep"></span><span>PIX</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="seal-foot">
+        <div class="seal-disclaimer">Simulação sujeita à análise e aprovação final. Não constitui contratação de crédito.</div>
+        <div class="simulacao-id" id="simulacao-id"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">Simulador Financeiro · Uso interno · Facilita Cell</div>
+
+<script>
+const DB_PREFIX = 'sf_cpf_';
+
+function carregarResultadoCPF(nums) {
+  try {
+    const raw = localStorage.getItem(DB_PREFIX + nums);
+    return raw ? JSON.parse(raw) : null;
+  } catch(e) { return null; }
+}
+
+function salvarResultadoCPF(nums, tipo, limite) {
+  try { localStorage.setItem(DB_PREFIX + nums, JSON.stringify({ tipo, limite })); } catch(e) {}
+}
+
+/* Sorteio interno de resultado, gerado via API Groq dentro das mesmas regras
+   que o sistema ja usava (uso interno, nao representa consulta a bureau externo).
+   ATENCAO: a chave abaixo fica visivel no codigo-fonte da pagina (front-end puro). */
+const GROQ_API_KEY = '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';
+
+async function gerarNovoResultado(nums) {
+  let tipo, limite;
+  try {
+    const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + GROQ_API_KEY },
+      body: JSON.stringify({
+        model: 'llama-3.1-8b-instant',
+        messages: [{
+          role: 'user',
+          content:
+            'Responda SOMENTE com um JSON, sem markdown, sem texto extra, no formato exato ' +
+            '{"tipo":"aprovado" ou "negado","limite":numero}. ' +
+            'Regras: sorteie "negado" com 20% de chance e "aprovado" com 80% de chance. ' +
+            'Se "aprovado", sorteie "limite" como um numero inteiro multiplo de 50 entre 1800 e 2700, ' +
+            'variando bastante o valor a cada chamada (nao repita sempre os mesmos numeros). ' +
+            'Se "negado", "limite" deve ser null.'
+        }],
+        temperature: 1.1,
+        max_tokens: 60
+      })
+    });
+    const data = await resp.json();
+    const raw = data.choices[0].message.content.trim().replace(/```json|```/g, '');
+    const parsed = JSON.parse(raw);
+    tipo = parsed.tipo === 'negado' ? 'negado' : 'aprovado';
+    limite = tipo === 'negado' ? null : Number(parsed.limite);
+    if (tipo === 'aprovado' && (!limite || limite < 1800 || limite > 2700)) {
+      limite = 1800 + Math.floor(Math.random() * 19) * 50;
+    }
+  } catch (e) {
+    const roll = Math.floor(Math.random() * 20);
+    tipo = roll <= 3 ? 'negado' : 'aprovado';
+    limite = tipo === 'negado' ? null : (1800 + Math.floor(Math.random() * 19) * 50);
+  }
+  salvarResultadoCPF(nums, tipo, limite);
+  return { tipo, limite };
+}
+
+function fmtBRL(v) { return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
+
+const cpfEl = document.getElementById('cpf');
+const clearBtn = document.getElementById('clear-btn');
+
+cpfEl.addEventListener('input', function() {
+  let v = this.value.replace(/\D/g, '');
+  if (v.length > 9) v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, '$1.$2.$3-$4');
+  else if (v.length > 6) v = v.replace(/(\d{3})(\d{3})(\d+)/, '$1.$2.$3');
+  else if (v.length > 3) v = v.replace(/(\d{3})(\d+)/, '$1.$2');
+  this.value = v;
+  this.classList.remove('error');
+  clearBtn.classList.toggle('visible', v.length > 0);
+});
+
+cpfEl.addEventListener('keydown', function(e) { if (e.key === 'Enter') analisarAuto(); });
+
+cpfEl.addEventListener('input', function() {
+  const nums = this.value.replace(/\D/g, '');
+  if (nums.length === 11 && validarCPF(this.value)) setTimeout(() => analisarAuto(), 120);
+});
+
+function limpar() {
+  cpfEl.value = '';
+  cpfEl.classList.remove('error');
+  clearBtn.classList.remove('visible');
+  document.getElementById('result').className = 'result';
+  document.getElementById('loading-steps').classList.remove('show');
+  cpfEl.focus();
+}
+
+function validarCPF(cpf) {
+  cpf = cpf.replace(/\D/g, '');
+  if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
+  let s = 0;
+  for (let i = 0; i < 9; i++) s += parseInt(cpf[i]) * (10 - i);
+  let r = (s * 10) % 11; if (r === 10 || r === 11) r = 0;
+  if (r !== parseInt(cpf[9])) return false;
+  s = 0;
+  for (let i = 0; i < 10; i++) s += parseInt(cpf[i]) * (11 - i);
+  r = (s * 10) % 11; if (r === 10 || r === 11) r = 0;
+  return r === parseInt(cpf[10]);
+}
+
+let analisando = false;
+
+async function analisarAuto() {
+  const cpf = cpfEl.value.trim();
+  const nums = cpf.replace(/\D/g, '');
+
+  if (nums.length < 11 || !validarCPF(cpf)) {
+    cpfEl.classList.add('error'); cpfEl.focus();
+    setTimeout(() => cpfEl.classList.remove('error'), 800); return;
+  }
+  if (analisando) return;
+  analisando = true;
+
+  const btn = document.getElementById('btn-auto');
+  const label = document.getElementById('btn-auto-label');
+  const spin = document.getElementById('spinner');
+  const result = document.getElementById('result');
+  const steps = document.getElementById('loading-steps');
+
+  result.className = 'result';
+  steps.classList.add('show');
+  btn.classList.add('loading');
+  label.textContent = 'Simulando...';
+  spin.style.display = 'block';
+
+  const cached = carregarResultadoCPF(nums);
+  const minDelay = new Promise(res => setTimeout(res, cached ? 400 : 900));
+
+  const [ { tipo, limite } ] = await Promise.all([
+    cached ? Promise.resolve(cached) : gerarNovoResultado(nums),
+    minDelay
+  ]);
+
+  btn.classList.remove('loading');
+  label.textContent = 'Simular';
+  spin.style.display = 'none';
+  steps.classList.remove('show');
+  analisando = false;
+
+  mostrarResultado(tipo, cpf, limite);
+}
+
+const ICONS = {
+  aprovado: '<path d="M20 6L9 17l-5-5"/>',
+  negado:   '<path d="M18 6L6 18M6 6l12 12"/>'
+};
+
+function mostrarResultado(tipo, cpf, limite) {
+  const result = document.getElementById('result');
+  const seal = document.getElementById('seal');
+  const status = document.getElementById('seal-status');
+  const cpfEl2 = document.getElementById('seal-cpf');
+  const limSec = document.getElementById('limite-section');
+  const limValor = document.getElementById('limite-valor');
+  const icon = document.getElementById('seal-icon');
+  const simId = document.getElementById('simulacao-id');
+
+  seal.className = 'seal ' + (tipo === 'negado' ? 'r-negado' : 'r-aprovado');
+  status.textContent = tipo === 'negado' ? 'Não aprovado' : 'Pré-aprovado';
+  cpfEl2.textContent = 'CPF ' + cpf;
+  icon.innerHTML = ICONS[tipo];
+
+  if (tipo === 'negado') {
+    limSec.style.display = 'none';
+  } else {
+    limSec.style.display = 'block';
+    limValor.textContent = fmtBRL(limite);
+    document.getElementById('aparelho-valor').textContent = fmtBRL(limite);
+  }
+
+  const idNum = Math.floor(1000 + Math.random() * 8999);
+  simId.textContent = 'Protocolo nº ' + idNum;
+
+  result.classList.add('show');
+  result.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+</script>
+</body>
+</html>
